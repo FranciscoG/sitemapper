@@ -1,0 +1,17 @@
+{
+  "name": "sitemapper",
+  "version": "0.1.0",
+  "description": "Site crawler that builds an XML sitemap",
+  "main": "sitemapper.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^0.19.0",
+    "request": "^2.65.0",
+    "yargs": "^3.27.0",
+    "bluebird": "^2.10.2"
+  }
+}
