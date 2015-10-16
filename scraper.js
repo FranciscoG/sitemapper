@@ -3,6 +3,8 @@ var Bluebird = require('bluebird');
 var url = require('url');
 var request = Bluebird.promisifyAll(require('request'));
 
+var BaseUrl = "";
+
 /**
  * Takes in an Array and remove duplicates
  * @param  {Array} arr The array you would like to filter out duplicates from
@@ -20,38 +22,49 @@ function deDupeArray(arr) {
   return result;
 }
 
+function isDef(x) {
+  return typeof x !== 'undefined' && x !== null && x !== "";
+}
+
 /**
- * get all the download links on a page
+ * get all the download links, images, and pdfs on a page
  * @param {Object} $  Cheerio object. jquery-like $ object with document already loaded
- * @return {Object} links : []
- *                  images : []
+ * @return {Object}
+ * @return {Array} Object.links  Array of links
+ * @return {Array} Object.images Array of images
+ * @return {Array} Object.pdfs   Array of PDFs
  */
 function getItems($){
-  var result = { links : [], images : [] };
+  var result = { links : [], images : [], pdfs : [] };
   if (!$) { return result; }
   
   var links = [];
   var images = [];
+  var pdfs = [];
   var current = "";
 
-  console.log('getting links from html...');
   $('a').each(function(i, elem){
     current = $(this).attr('href');
-    if (typeof current !== 'undefined' && current !== "") {
-      links.push(current);
+    if (isDef(current)) {
+      if (current.indexOf('.pdf') > 0) {
+        pdfs.push(current);
+      } else {
+        links.push(url.resolve(BaseUrl, current));
+      }
     }
   });
 
   current = "";
-  console.log('getting images from html...');
   $('img').each(function(i, elem){
     current = $(this).attr('src');
-    if (typeof current !== 'undefined' && current !== "") {
+    if (isDef(current)) {
       images.push(current);
     }
   });
+
   result.links = deDupeArray(links);
   result.images = deDupeArray(images);
+  result.pdfs = deDupeArray(pdfs);
   return result;
 }
 
@@ -61,12 +74,14 @@ function getItems($){
  */
 function Scraper(siteURL){
   //get the HTML for the page
-  console.log('requesting page...');
-  
+
+  var _url = url.parse(siteURL);
+  BaseUrl =  _url.protocol + '//' + _url.host;
+
   var options = {
     url: siteURL,
     headers: {
-       'Host': url.parse(siteURL).host
+       'Host': _url.host
       }
   };
 
@@ -78,7 +93,6 @@ function Scraper(siteURL){
         var body = args[1];
         headers = args[0].headers;
         var $ = cheerio.load(body);
-        console.log('got html with title: "' + $('title').text() + '"...');
         return $;
       } else {
         console.log(args[0].statusCode + " : " + args[0].statusMessage);
