@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-var scraper = require('./scraper.js');
+var Scraper = require('./scraper.js');
 var argv = require('yargs').argv;
 
-if (typeof argv.site !== 'undefined' ) {
-    scraper.getLinks(argv.site)
-      .then(function(links){
-        console.log(links);
+var baseUrl = argv.site;
+
+if (typeof baseUrl !== 'undefined' ) {
+    var scrape = new Scraper(baseUrl);
+    scrape.then(function(obj){
+        console.log(obj);
       });
 }
 else {
