@@ -1,14 +1,18 @@
 #!/usr/bin/env node
-var Scraper = require('./scraper.js');
+var Scraper = require('./lib/scraper.js');
 var argv = require('yargs').argv;
+var validateLinks = require('./lib/validate-links.js');
 
 var baseUrl = argv.site;
 
 if (typeof baseUrl !== 'undefined' ) {
     var scrape = new Scraper(baseUrl);
     scrape.then(function(obj){
-        console.log(obj);
-      });
+      return validateLinks(baseUrl, obj.links);
+    })
+    .then(function(links){
+        console.log(links);
+    });
 }
 else {
   console.log('usage: index.js --site http://blablabla.bla');
@@ -18,18 +22,6 @@ else {
   
   some notes:
   
-  Filter through links to make sure they are worth traversing:
-  ------------------------------------------------------------
-  
-  strip hash and queries
-    #
-    ?
-  
-  check if http and is local
-    if url.protocol.indeOf('http') > -1
-    if url.host.indexOf(SITEURL) > 0
-
-
   this is how to form the JSON to be easily converted to XML later:
   ----------------------------------------------------------------
   // <?xml version="1.0" encoding="UTF-8"?>
