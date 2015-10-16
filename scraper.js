@@ -70,10 +70,13 @@ function Scraper(siteURL){
       }
   };
 
+  var headers = "";
+
   return request.getAsync(options)
     .then(function(args){
       if (args[0].statusCode === 200) {
         var body = args[1];
+        headers = args[0].headers;
         var $ = cheerio.load(body);
         console.log('got html with title: "' + $('title').text() + '"...');
         return $;
@@ -85,6 +88,7 @@ function Scraper(siteURL){
     .then(getItems)
     .then(function(itemsObj){
       //reduce list to the number selected
+      itemsObj.headers = headers;
       return itemsObj;
     })
     .catch(function(e){
@@ -92,7 +96,5 @@ function Scraper(siteURL){
       process.exit(1);
     });
 }
-
-
 
 module.exports = Scraper;
