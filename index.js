@@ -12,6 +12,8 @@ var argv = require('yargs').argv;
  * -p --pdfs    to include pdfs
  * -h --hash    to include urls with a hash
  * -q --queries to include urls with search queries
+ * -u --user    to include Basic HTTP Auth Username
+ * -p --pass    to include Basic HTTP Auth Password
  */
 
 var options = {
@@ -19,29 +21,11 @@ var options = {
   includePDFs : ( (argv.pdfs || argv.p) || (argv.all || argv.a) ) ? true : false,
   includeAll : (argv.all || argv.a) ? true : false,
   includeHash : (argv.hash || argv.h) ? true : false,
-  includeQueries : (argv.queries || argv.q) ? true : false
+  includeQueries : (argv.queries || argv.q) ? true : false,
+  authUser : (argv.user || argv.u) ? (argv.user || argv.u) : false,
+  authPW : (argv.pass || argv.p) ? (argv.pass || argv.p) : false
 };
 
-
-/***********************************************************
- * Event Callbacks
- */
-
-function onComplete(){
-  console.log("finished!");
-}
-
-function onDiscovered(queueItem) {
-  console.log("Completed discovering resource:", queueItem.url);
-}
-
-function onFetchComplete(queueItem) {
-  console.log("Completed fetching resource:", queueItem.url);
-}
-
-function on404(queueItem) {
-  console.log("404 or 410 response for: ", queueItem.url);
-}
 
 /***********************************************************
  * init Crawler
@@ -93,6 +77,35 @@ if (!options.includeQueries) {
   myCrawler.stripQuerystring = true;
 }
 
+if (options.authUser) {
+  myCrawler.needsAuth = true;
+  myCrawler.authUser = options.authUser;
+}
+
+if (options.authPW) {
+  myCrawler.needsAuth = true;
+  myCrawler.authPass = options.authPW;
+}
+
+/***********************************************************
+ * Event Callbacks
+ */
+
+function onComplete(){
+  console.log("finished!");
+}
+
+function onDiscovered(queueItem) {
+  console.log("Completed discovering resource:", queueItem.url);
+}
+
+function onFetchComplete(queueItem) {
+  console.log("Completed fetching resource:", queueItem.url);
+}
+
+function on404(queueItem) {
+  console.log("404 or 410 response for: ", queueItem.url);
+}
 
 /***********************************************************
  * begin Crawling
@@ -102,7 +115,7 @@ if (!options.includeQueries) {
 // process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 // myCrawler.on("discoverycomplete", onDiscovered)
-myCrawler.on("fetchcomplete", onFetchComplete)
+myCrawler.on("fetchcomplete", onFetchComplete);
 myCrawler.on("complete", onComplete);
 myCrawler.on("fetch404", on404);
 
