@@ -120,13 +120,13 @@ filterLog () {
 }
 
 makeXML () {
-  header='<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">' 
-  echo $header > sitemap.xml
+  header="<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:image=\"http://www.google.com/schemas/sitemap-image/1.1\" xsi:schemaLocation=\"http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd\">"
+  printf $header > sitemap.xml
   anyfileExt=".*\.[a-z]{2,3}$"
   while read p; do
     if [[ ! $p =~ $anyfileExt ]] ; then printf "<url>\n\t<loc>"$p"</loc>\n</url>\n" >> sitemap.xml; fi
   done < sortedlinks.txt
-  echo "</urlset>" >> sitemap.xml
+  printf "</urlset>" >> sitemap.xml
 }
 
 cleanUp () {
