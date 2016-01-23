@@ -1,4 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
+##################################################################################
+# wget shell script sitemap generator
+#
+# Helpful sources:
+# 
+# http://stackoverflow.com/questions/12498304/using-bash-to-display-a-progress-working-indicator
+# source of getting arguments via bash: http://stackoverflow.com/a/14203146/395414
+# http://www.lostsaloon.com/technology/how-to-create-an-xml-sitemap-using-wget-and-shell-script/
+#
+###################################################################################
+
+set -o errexit
+set -o pipefail
+# set -o nounset
+# set -o xtrace
 
 # Colors!
 # Black        0;30     Dark Gray     1;30
@@ -19,21 +35,11 @@ NC='\033[0m' # No Color
 wget="$(which wget)"
 
 if [ ! -f $wget ]; then
-  echo wget not installed, please download and install it first and start this script again
-  echo you can get it here:  http://www.merenbach.com/software/wget/
+  echo "wget not installed, please download and install it first and start this script again"
+  echo "you can get it here:  http://www.merenbach.com/software/wget/"
   exit 1
 fi
 
-# source of getting arguments via bash: http://stackoverflow.com/a/14203146/395414
-#
-# Use > 1 to consume two arguments per pass in the loop (e.g. each
-# argument has a corresponding value to go with it).
-# Use > 0 to consume one or more arguments per pass in the loop (e.g.
-# some arguments don't have a corresponding value to go with it such
-# as in the --default example).
-# note: if this is set to > 0 the /etc/hosts part is not recognized ( may be a bug )
-# 
-# example:  ./myscript.sh -e conf -s /etc -l /usr/lib /etc/hosts
 while [[ $# > 0 ]]
 do
 key="$1"
@@ -51,9 +57,6 @@ case $key in
     PASSWORD="$2"
     shift # past argument
     ;;
-    -v|--verbose)
-    VERBOSE=YES
-    ;;
     *)
     ;;
 esac
@@ -66,44 +69,91 @@ if [ -z "$key" ]; then
     echo -e "-u or --url:        The full URL ${red}(required!)${NC}"
     echo -e "-l or --login:      The username for basic http auth"
     echo -e "-p or --password:   The password for basic http auth"
-    echo -e "-v or --verbose:    Show verbose output from wget"
     exit 1
 fi
-
-FLAGVERBOSE='--no-verbose'
-FLAGLOGIN=''
-FLAGPASSWORD=''
 
 if [ -z "$URL" ]; then
   echo -e "You must enter a URL"
   exit 1
 fi
 
-echo -e "URL = ${green}${URL}${NC}"
-
+echo -e "Crawling: ${green}${URL}${NC}"
+FLAGLOGIN=""
+FLAGPW=""
 
 if [ ! -z "$LOGIN" ]; then
   FLAGLOGIN="--http-user=$LOGIN"
   if [ -z "$PASSWORD" ]; then
-    echo "Please enter a password using with -p"
+    echo "Please enter a password using -p or --password"
     exit 1
   fi
 fi
 
 if [ ! -z "$PASSWORD" ]; then
-  FLAGPASSWORD="--http-password=$PASSWORD"
+  FLAGPW="--http-password=$PASSWORD"
   if [ -z "$LOGIN" ]; then
-    echo "Please enter a login/username using with -l"
+    echo "Please enter a login/username using -l or --login"
     exit 1
   fi
 fi
 
-# if verbose flag is set then we remove the no-verbose flag
-# yes it's a little backwards, deal with it
-if [ ! -z "$VERBOSE" ]; then
-  FLAGVERBOSE=''
-fi
+baseWget () {
+  ###
+  # wget manual https://www.gnu.org/software/wget/manual/wget.html#Recursive-Download
+  # -r   recursive
+  # -nv  no verbose
+  # -w   wait 1 second between requests
+  # --delete-after  delete downloaded content
+  # -o   output file 
+  # -l   level depth of recursion
+  # $@   print all arguments given to this function
+  ###
+  wget --spider -l 10 -r -nv -w 1 --delete-after -o wgetlog.txt $@
+}
 
-#wget --spider --recursive --no-verbose --wait=1 --output-file=wgetlog.txt --http-user=$LOGIN --http-password=$PASSWORD $URL
-wget --spider --recursive `echo $FLAGVERBOSE` --output-file=wgetlog.txt `echo $FLAGLOGIN` `echo $FLAGPASSWORD` $URL && \
-sed -n "s@.\+ URL:\([^ ]\+\) .\+@\1@p" wgetlog.txt | sed "s@&@\&amp;@" > sedlog.txt
+startSpider () {
+  baseWget `echo $FLAGLOGIN` `echo $FLAGPW` $URL
+}
+
+filterLog () {
+  grep -i URL wgetlog.txt | awk -F 'URL:' '{print $2}' | awk '{$1=$1};1' | awk '{print $1}' | sort -u | sed '/^$/d' > sortedlinks.txt
+}
+
+makeXML () {
+  header='<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">' 
+  echo $header > sitemap.xml
+  anyfileExt=".*\.[a-z]{2,3}$"
+  while read p; do
+    if [[ ! $p =~ $anyfileExt ]] ; then printf "<url>\n\t<loc>"$p"</loc>\n</url>\n" >> sitemap.xml; fi
+  done < sortedlinks.txt
+  echo "</urlset>" >> sitemap.xml
+}
+
+cleanUp () {
+  # for some reason, even when using the --spider flag, it's still downloading and keeping the entire website
+  # so I'm testing to see if it exists and deleting it if it does
+  var=$URL
+  CURR_DIR="$( echo "$var" | sed -E 's#https?://##;' )"
+  if [ -d "$CURR_DIR" ]; then
+    echo "removing local directory: $CURR_DIR"
+    rm -rf $CURR_DIR
+  fi
+
+  # remove our 2 temporary files
+  rm wgetlog.txt
+  rm sortedlinks.txt
+}
+
+startSpider &
+pid=$! # Process Id of the previous running command
+
+spin='-\|/'
+
+i=0
+while kill -0 $pid 2>/dev/null
+do
+  i=$(( (i+1) %4 ))
+  printf "\r${spin:$i:1}"
+  sleep .1
+done
+filterLog && makeXML && cleanUp

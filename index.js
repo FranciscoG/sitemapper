@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 var Crawler = require("simplecrawler");
-var deDupe = require('./lib/dedupe.js');
 var argv = require('yargs').argv;
 
 /***********************************************************
@@ -9,7 +8,7 @@ var argv = require('yargs').argv;
  *
  * -a --all     to include all assets (images, css, js, pdfs, everything!)
  * -i --images  to include images
- * -p --pdfs    to include pdfs
+ * --pdf    to include pdfs
  * -h --hash    to include urls with a hash
  * -q --queries to include urls with search queries
  * -u --user    to include Basic HTTP Auth Username
@@ -18,7 +17,7 @@ var argv = require('yargs').argv;
 
 var options = {
   includeImages : ( (argv.images || argv.i) || (argv.all || argv.a) ) ? true : false,
-  includePDFs : ( (argv.pdfs || argv.p) || (argv.all || argv.a) ) ? true : false,
+  includePDFs : ( argv.pdf || (argv.all || argv.a) ) ? true : false,
   includeAll : (argv.all || argv.a) ? true : false,
   includeHash : (argv.hash || argv.h) ? true : false,
   includeQueries : (argv.queries || argv.q) ? true : false,
@@ -91,8 +90,11 @@ if (options.authPW) {
  * Event Callbacks
  */
 
+var urlset = [];
+
 function onComplete(){
   console.log("finished!");
+  console.log(urlset);
 }
 
 function onDiscovered(queueItem) {
@@ -101,6 +103,7 @@ function onDiscovered(queueItem) {
 
 function onFetchComplete(queueItem) {
   console.log("Completed fetching resource:", queueItem.url);
+  urlset.push( { "loc" : queueItem.url } );
 }
 
 function on404(queueItem) {
