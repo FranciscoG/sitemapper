@@ -110,6 +110,10 @@ function on404(queueItem) {
   console.log("404 or 410 response for: ", queueItem.url);
 }
 
+function onOtherError(queueItem) {
+  console.log(JSON.stringify(queueItem));
+}
+
 /***********************************************************
  * begin Crawling
  */
@@ -121,6 +125,7 @@ function on404(queueItem) {
 myCrawler.on("fetchcomplete", onFetchComplete);
 myCrawler.on("complete", onComplete);
 myCrawler.on("fetch404", on404);
+myCrawler.on("fetcherror", onOtherError);
 
 myCrawler.start();
 

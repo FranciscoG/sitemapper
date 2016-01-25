@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "simplecrawler": "^0.5.4",
+    "xmlbuilder": "^4.2.1",
     "yargs": "^3.27.0"
   }
 }

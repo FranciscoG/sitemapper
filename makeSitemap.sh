@@ -124,7 +124,7 @@ makeXML () {
   printf $header > sitemap.xml
   anyfileExt=".*\.[a-z]{2,3}$"
   while read p; do
-    if [[ ! $p =~ $anyfileExt ]] ; then printf "<url>\n\t<loc>"$p"</loc>\n</url>\n" >> sitemap.xml; fi
+    if [[ ! $p =~ $anyfileExt ]] ; then printf "  <url>\n\t<loc>"$p"</loc>\n</url>\n" >> sitemap.xml; fi
   done < sortedlinks.txt
   printf "</urlset>" >> sitemap.xml
 }
