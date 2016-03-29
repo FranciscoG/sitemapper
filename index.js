@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 var Crawler = require("simplecrawler");
 var argv = require('yargs').argv;
+var colors = require('colors');
 
 /***********************************************************
  * Set options
@@ -13,6 +14,8 @@ var argv = require('yargs').argv;
  * -q --queries to include urls with search queries
  * -u --user    to include Basic HTTP Auth Username
  * -p --pass    to include Basic HTTP Auth Password
+ * --port       use a non-standard http port
+ * --initPath   initial path to start from
  */
 
 var options = {
@@ -22,9 +25,10 @@ var options = {
   includeHash : (argv.hash || argv.h) ? true : false,
   includeQueries : (argv.queries || argv.q) ? true : false,
   authUser : (argv.user || argv.u) ? (argv.user || argv.u) : false,
-  authPW : (argv.pass || argv.p) ? (argv.pass || argv.p) : false
+  authPW : (argv.pass || argv.p) ? (argv.pass || argv.p) : false,
+  port: argv.port || false,
+  initPath: argv.initPath || false
 };
-
 
 /***********************************************************
  * init Crawler
@@ -36,7 +40,21 @@ if (baseUrl) {
   var myCrawler = new Crawler(baseUrl);
 }
 else {
-  console.log('usage: index.js --site www.the-site.com');
+  console.log('basic usage: ./index.js --site www.the-site.com\n');
+
+  var options = [
+    "-s or --site \t\t Required, the url of the site.\n",
+    "--port \t\t\t use a non-standard http port\n\n",
+    "-a or --all \t\t include all assets (images, css, js, pdfs, everything!)\n",
+    "-i or --images \t\t include images\n",
+    "-h or --hash \t\t include urls with a hash\n",
+    "-q or --queries \t include urls with search queries\n",
+    "-u or --user \t\t include Basic HTTP Auth Username\n",
+    "-p or --pass \t\t include Basic HTTP Auth Password\n",
+    "--pdf \t\t\t include pdfs\n",
+    "--initPath \t\t initial path to start from\n"
+  ].join('');
+  console.log(options);
   process.exit(1);
 }
 
@@ -86,15 +104,24 @@ if (options.authPW) {
   myCrawler.authPass = options.authPW;
 }
 
+if (options.port) {
+  console.log("using port: " + options.port);
+  myCrawler.initialPort = options.port;
+}
+
+myCrawler.allowInitialDomainChange=true;
+
 /***********************************************************
  * Event Callbacks
  */
 
 var urlset = [];
+var errors = [];
 
 function onComplete(){
   console.log("finished!");
-  console.log(urlset);
+  console.log("\n\nThe following errors were found:");
+  console.log(errors.join('\n').red);
 }
 
 function onDiscovered(queueItem) {
@@ -107,11 +134,14 @@ function onFetchComplete(queueItem) {
 }
 
 function on404(queueItem) {
-  console.log("404 or 410 response for: ", queueItem.url);
+  console.log("404 or 410 response for: ".red, queueItem.url.red);
+  errors.push(queueItem.status + " - " + queueItem.url);
+  // console.log(JSON.stringify(queueItem));
 }
 
 function onOtherError(queueItem) {
   console.log(JSON.stringify(queueItem));
+  errors.push(queueItem.status + " - " + queueItem.url);
 }
 
 /***********************************************************

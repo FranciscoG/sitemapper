@@ -12,6 +12,7 @@
     "node": ">=0.10.0"
   },
   "dependencies": {
+    "colors": "^1.1.2",
     "simplecrawler": "^0.5.4",
     "xmlbuilder": "^4.2.1",
     "yargs": "^3.27.0"
